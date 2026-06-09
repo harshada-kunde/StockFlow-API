@@ -1,0 +1,29 @@
+# Build results
+bin/
+obj/
+
+# VS Code settings
+.vscode/
+*.user
+
+# Mac junk files
+.DS_Store
+__MACOSX/
+
+# SQLite database file (we don't want to push this)
+*.db
+*.db-shm
+*.db-wal
+
+# Environment and secrets
+appsettings.Development.json
+*.env
+
+# NuGet packages
+*.nupkg
+packages/
+
+# Rider/Visual Studio
+.idea/
+*.suo
+*.userprefs
