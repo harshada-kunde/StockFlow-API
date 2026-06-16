@@ -1,6 +1,12 @@
 using StockFlow.API.Data;
 using StockFlow.API.Entities;
 using Microsoft.EntityFrameworkCore;
+using StockFlow.API.Repositories.Interfaces;
+using StockFlow.API.Data.Repositories;
+using StockFlow.API.Services.Interfaces;
+using StockFlow.API.Services;
+using StockFlow.API.ValidationService.Interfaces;
+using StockFlow.API.ValidationService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +18,10 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICategoryValidation, CategoryValidation>();
 
 var app = builder.Build();
 

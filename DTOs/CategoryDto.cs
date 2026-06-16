@@ -1,3 +1,4 @@
+namespace StockFlow.API.DTOs;
 public class CategoryDto
 {
 
