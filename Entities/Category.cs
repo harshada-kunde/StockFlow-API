@@ -9,7 +9,7 @@ public class Category
     public string CreatedBy {get;set;}
 
     //Navigation Property
-    public List<Product>Products{get;set;}= new();
+    //public List<Product>Products{get;set;}= new();
 
 }
 //EF Core has built-in conventions — rules it follows automatically without you writing any configuration

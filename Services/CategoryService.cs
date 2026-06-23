@@ -1,7 +1,7 @@
 using StockFlow.API.DTOs;
 using StockFlow.API.Entities;
 using StockFlow.API.Models;
-using StockFlow.API.Repositories.Interfaces;
+using StockFlow.API.Data.Repositories.Interfaces;
 using StockFlow.API.Services.Interfaces;
 using StockFlow.API.ValidationService.Interfaces;
 
@@ -73,6 +73,6 @@ public class CategoryService : ICategoryService
     public async Task<ApiResponse<string>> DeleteAsync(int id)
     {
         var result = await _categoryRepository.DeleteByIdAsync(id);
-        return new ApiResponse<string>(default, true, $"Category with ID {id} deleted successfully");
+        return ApiResponse<string>.SuccessResponse(default, $"Category with ID {id} deleted successfully");
     }
 }
