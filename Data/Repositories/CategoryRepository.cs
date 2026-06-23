@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using StockFlow.API.Data;
 using StockFlow.API.Entities;
 using StockFlow.API.DTOs;
-using StockFlow.API.Repositories.Interfaces;
+using StockFlow.API.Data.Repositories.Interfaces;
 
 namespace StockFlow.API.Data.Repositories
 {

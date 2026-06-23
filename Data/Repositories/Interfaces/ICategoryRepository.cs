@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using StockFlow.API.Entities;
 using StockFlow.API.DTOs;
 
-namespace StockFlow.API.Repositories.Interfaces;
+namespace StockFlow.API.Data.Repositories.Interfaces;
 
 public interface ICategoryRepository
     {

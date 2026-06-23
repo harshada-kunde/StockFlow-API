@@ -1,5 +1,5 @@
 using StockFlow.API.DTOs;
-using StockFlow.API.Repositories.Interfaces;
+using StockFlow.API.Data.Repositories.Interfaces;
 using StockFlow.API.ValidationService.Interfaces;
 
 namespace StockFlow.API.ValidationService;
