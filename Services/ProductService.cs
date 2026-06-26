@@ -43,6 +43,7 @@ public class ProductService : IProductService
         }
         return ApiResponse<PagedResponse<Product>>.SuccessResponse(pagedResponse, "Products retrieved successfully.");
     }
+
     public async Task<ApiResponse<Product>> GetByProductIdAsync(int id)
     {
         if (id <= 0)
@@ -55,6 +56,7 @@ public class ProductService : IProductService
 
         return ApiResponse<Product>.SuccessResponse(product, "Product retrieved successfully.");
     }
+
     public async Task<ApiResponse<List<Product>>> SearchByNameAsync(string name)
     {
             name = name.Trim();
@@ -66,6 +68,7 @@ public class ProductService : IProductService
 
         return ApiResponse<List<Product>>.SuccessResponse(products,$"{products.Count} product(s) found matching '{name}'.");
     }
+
     public async Task<ApiResponse<List<Product>>> GetByCategoryNameAsync(string categoryName, int pageNo, int pageSize)
     {
       if (pageNo <= 0 || pageSize <= 0)
@@ -85,27 +88,10 @@ public class ProductService : IProductService
 
         return ApiResponse<List<Product>>.SuccessResponse(products, $"{products.Count} product(s) found in category '{categoryName}'.");
     }
+    
     public async Task<ApiResponse<List<Product>>> GetByPriceRangeAsync(decimal minPrice, decimal maxPrice, int pageNo, int pageSize)
     {
-       /* if (minPrice < 0)
-            return ApiResponse<List<Product>>.Fail(
-                   "Minimum price cannot be negative.");
 
-        if (maxPrice <= 0)
-            return ApiResponse<List<Product>>.Fail(
-                   "Maximum price must be greater than 0.");
-
-        if (minPrice >= maxPrice)
-            return ApiResponse<List<Product>>.Fail(
-                   "Minimum price must be less than maximum price.");
-
-        if (pageNo <= 0)
-            return ApiResponse<List<Product>>.Fail(
-                   "Page number must be greater than 0.");
-
-        if (pageSize <= 0 || pageSize > 50)
-            return ApiResponse<List<Product>>.Fail(
-                   "Page size must be between 1 and 50.");*/ // put all this code in vallidation service
 
         var products = await _productRepository.GetByPriceRangeAsync(minPrice, maxPrice, pageNo, pageSize);
 
@@ -142,6 +128,13 @@ public class ProductService : IProductService
 
         // Validate ALL products first — collect all errors
         var allErrors = new List<string>();
+        var batchErrors = new List<string>();
+
+        //check duplicate records in single request
+        batchErrors = _productValidation.ValidateBulkForDuplicates(dtos);
+
+        if (batchErrors.Count > 0)
+            return ApiResponse<List<Product>>.ValidationErrorResponse(batchErrors);
 
         foreach (var prod in dtos)
         {

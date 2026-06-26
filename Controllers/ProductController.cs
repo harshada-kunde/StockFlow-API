@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StockFlow.API.DTOs;
 using StockFlow.API.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StockFlow.API.Controllers;
 
@@ -17,7 +18,8 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllProducts([FromQuery] int pageNo, [FromQuery] int pageSize)
+    [Authorize]
+    public async Task<IActionResult> GetAllProducts([FromQuery] int pageNo = 1, [FromQuery] int pageSize = 10)
     {
         var response = await _productService.GetAllProductsAsync(pageNo, pageSize);
         if (!response.Success)
@@ -26,6 +28,7 @@ public class ProductController : ControllerBase
         return Ok(response);
     }
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<IActionResult> GetById(int id)
     {
         var response = await _productService.GetByProductIdAsync(id);
@@ -40,6 +43,7 @@ public class ProductController : ControllerBase
         return Ok(response);
     }
     [HttpGet("search")]
+    [Authorize]
     public async Task<IActionResult> Search([FromQuery] string name)
     {
         var response = await _productService.SearchByNameAsync(name);
@@ -51,6 +55,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("category/{categoryName}")]
+    [Authorize]
     public async Task<IActionResult> GetByCategoryName(string categoryName,[FromQuery] int pageNo = 1,[FromQuery] int pageSize = 10)
     {
         var response = await _productService.GetByCategoryNameAsync(categoryName, pageNo, pageSize);
@@ -67,6 +72,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("filter")]
+    [Authorize]
     public async Task<IActionResult> GetByPriceRange([FromQuery] decimal minPrice,[FromQuery] decimal maxPrice,[FromQuery] int pageNo = 1,[FromQuery] int pageSize = 10)
     {
         var response = await _productService.GetByPriceRangeAsync(minPrice, maxPrice, pageNo, pageSize);
@@ -78,6 +84,7 @@ public class ProductController : ControllerBase
     }
 
      [HttpPost]
+     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] ProductDto dto)
     {
         var response = await _productService.CreateProductAsync(dto);
@@ -94,6 +101,7 @@ public class ProductController : ControllerBase
     }
     
     [HttpPost("bulk")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateMultiple([FromBody] List<ProductDto> dtos)
     {
         var response = await _productService.CreateMultipleProductsAsync(dtos);
@@ -110,6 +118,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] ProductDto dto)
     {
         var response = await _productService.UpdateProductAsync(id, dto);
@@ -128,6 +137,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var response = await _productService.DeleteProductAsync(id);

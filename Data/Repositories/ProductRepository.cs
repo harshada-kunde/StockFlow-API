@@ -18,15 +18,11 @@ public class ProductRepository : IProductRepository
     public async Task<(List<Product> products, int totalCount)> GetAllAsync(
         int pageNo, int pageSize)
    {
-    var query = _context.Products
-                        .Include(p => p.Category)
-                        .OrderBy(p => p.Name);      //Does NOT hit database — just builds the query in memory
+    var query = _context.Products.Include(p => p.Category).OrderBy(p => p.Name);      //Does NOT hit database — just builds the query in memory
 
-    var countTask = query.CountAsync();            //THIS hits the database — CountAsync() executes the query
-    var productsTask = query
-                      .Skip((pageNo - 1) * pageSize)
-                      .Take(pageSize)
-                      .ToListAsync();               //THIS hits the database — ToListAsync() executes the query
+    var countTask = query.CountAsync();     //THIS hits the database — CountAsync() executes the query
+           
+    var productsTask = query.Skip((pageNo - 1) * pageSize).Take(pageSize).ToListAsync();               //THIS hits the database — ToListAsync() executes the query
 
     await Task.WhenAll(countTask, productsTask);  //Task.WhenAll runs both database calls simultaneously instead of sequentially: instead of hitting DB twice, it hits it once for both calls.
 
@@ -35,9 +31,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product?> GetByIdAsync(int id)
     {
-        return await _context.Products
-                             .Include(p => p.Category)
-                             .FirstOrDefaultAsync(p => p.Id == id);
+        return await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<List<Product>> SearchByNameAsync(string name)

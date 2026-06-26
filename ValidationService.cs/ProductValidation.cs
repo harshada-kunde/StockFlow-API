@@ -167,4 +167,22 @@ public class ProductValidation : IProductValidation
 
         return errors;
     }
+
+    public List<string> ValidateBulkForDuplicates(List<ProductDto> dtos)
+    {
+    var errors = new List<string>();
+
+    var duplicates = dtos.GroupBy(d => new {Name = d.Name.ToLower().Trim(), d.CategoryId})
+                     .Where(g => g.Count() > 1).ToList();
+
+        if (duplicates.Count > 0)
+        {
+            foreach (var duplicate in duplicates)
+            {
+                errors.Add($"Duplicate product '{duplicate.Key.Name}' in category ID {duplicate.Key.CategoryId} found in batch.");
+            }
+        }
+
+    return errors;
+}
 }
