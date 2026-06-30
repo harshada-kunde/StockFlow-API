@@ -1,4 +1,5 @@
 using StockFlow.API.DTOs;
+using StockFlow.API.Entities;
 using StockFlow.API.Data.Repositories.Interfaces;
 using StockFlow.API.ValidationService.Interfaces;
 
@@ -97,6 +98,34 @@ public class OrderValidation : IOrderValidation
         // Quantity check
         if (dto.Quantity <= 0)
             errors.Add("Quantity must be greater than 0.");
+
+        return errors;
+    }
+    public async Task<List<string>> ValidateUpdateOrderItemAsync(int orderId, int orderItemId, int newQuantity, Order order)
+    {
+             var errors = new List<string>();
+
+            if (order.Status != "Pending")
+                errors.Add($"Cannot update items in a {order.Status} order.");
+
+            // Step 2 — Validate new quantity
+            if (newQuantity <= 0)
+                errors.Add("Quantity must be greater than 0.");
+
+            return errors;
+    }
+
+    public async Task<List<string>> ValidateConfirmOrderAsync(Order order)
+    {
+        var errors = new List<string>();
+
+        // Check status
+        if (order.Status == "Confirmed")
+            errors.Add("Order is already confirmed.");
+
+        if (order.Status == "Cancelled")
+            errors.Add("Cannot confirm a cancelled order.");
+
 
         return errors;
     }

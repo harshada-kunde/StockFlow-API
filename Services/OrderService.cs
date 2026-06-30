@@ -11,275 +11,323 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IProductRepository _productRepository;
-    private readonly IOrderValidation _validator;
+    private readonly IOrderValidation _orderValidation;
 
-    public OrderService(IOrderRepository orderRepository,IProductRepository productRepository,IOrderValidation validator)
+    public OrderService(IOrderRepository orderRepository,IProductRepository productRepository,IOrderValidation orderValidation)
     {
         _orderRepository = orderRepository;
         _productRepository = productRepository;
-        _validator = validator;
+        _orderValidation = orderValidation;
     }
 
     public async Task<ApiResponse<Order>> CreateOrderAsync(OrderDto dto)
     {
-        // Step 1 — Validate
-        var errors = await _validator.ValidateCreateAsync(dto);
-        if (errors.Count > 0)
-            return ApiResponse<Order>.ValidationErrorResponse(errors);
-
-        // Step 2 — Build OrderItems and calculate totals
-        var orderItems = new List<OrderItem>();
-        decimal totalAmount = 0;
-        int totalQuantity = 0;
-
-        foreach (var itemDto in dto.Items)
+        try
         {
-            var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
+            // Step 1 — Validate
+            var errors = await _orderValidation.ValidateCreateAsync(dto);
+            if (errors.Count > 0)
+                return ApiResponse<Order>.ValidationErrorResponse(errors);
 
-            var unitPrice = product!.Price;
-            var subTotal = unitPrice * itemDto.Quantity;
+            // Step 2 — Build OrderItems and calculate totals
+            var orderItems = new List<OrderItem>();
+            decimal totalAmount = 0;
+            int totalQuantity = 0;
 
-            orderItems.Add(new OrderItem
+            foreach (var itemDto in dto.Items)
             {
-                ProductId = itemDto.ProductId,
-                Quantity = itemDto.Quantity,
-                UnitPrice = unitPrice,
-                SubTotal = subTotal
-            });
+                var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
 
-            totalAmount += subTotal;
-            totalQuantity += itemDto.Quantity;
+                var unitPrice = product!.Price;
+                var subTotal = unitPrice * itemDto.Quantity;
+
+                orderItems.Add(new OrderItem
+                {
+                    ProductId = itemDto.ProductId,
+                    Quantity = itemDto.Quantity,
+                    UnitPrice = unitPrice,
+                    SubTotal = subTotal
+                });
+
+                totalAmount += subTotal;
+                totalQuantity += itemDto.Quantity;
+            }
+
+            // Step 3 — Create Order
+            var order = new Order
+            {
+                CustomerName = dto.CustomerName.Trim(),
+                OrderDate = DateTime.UtcNow,
+                TotalAmount = totalAmount,
+                TotalQuantity = totalQuantity,
+                Status = "Pending",
+                CreatedBy = "system",
+                CreatedOn = DateTime.UtcNow,
+                OrderItems = orderItems
+            };
+
+            // Step 4 — Deduct stock from each product
+            foreach (var itemDto in dto.Items)
+            {
+                var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
+                product!.StockQuantity -= itemDto.Quantity;
+                await _productRepository.UpdateAsync(product);
+            }
+
+            // Step 5 — Save order
+            var created = await _orderRepository.CreateOrderAsync(order);
+            return ApiResponse<Order>.SuccessResponse(created, "Order created successfully.");
         }
-
-        // Step 3 — Create Order
-        var order = new Order
+        catch (Exception ex)
         {
-            CustomerName = dto.CustomerName.Trim(),
-            OrderDate = DateTime.UtcNow,
-            TotalAmount = totalAmount,
-            TotalQuantity = totalQuantity,
-            Status = "Pending",
-            CreatedBy = "system",
-            CreatedOn = DateTime.UtcNow,
-            OrderItems = orderItems
-        };
-
-        // Step 4 — Deduct stock from each product
-        foreach (var itemDto in dto.Items)
-        {
-            var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
-            product!.StockQuantity -= itemDto.Quantity;
-            await _productRepository.UpdateAsync(product);
+            return ApiResponse<Order>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(CreateOrderAsync)}: {ex.Message}");
         }
-
-        // Step 5 — Save order
-        var created = await _orderRepository.CreateOrderAsync(order);
-        return ApiResponse<Order>.SuccessResponse(created, "Order created successfully.");
     }
 
     public async Task<ApiResponse<Order>> GetOrderByIdAsync(int orderId)
     {
-        if (orderId <= 0)
-            return ApiResponse<Order>.ErrorResponse("Invalid order ID.");
+        try
+        {
+            if (orderId <= 0)
+                return ApiResponse<Order>.ErrorResponse("Invalid order ID.");
 
-        var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        if (order == null)
-            return ApiResponse<Order>.ErrorResponse(
-                   $"Order with ID {orderId} does not exist.");
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+            
+            if (order == null)
+                return ApiResponse<Order>.ErrorResponse(
+                    $"Order with ID {orderId} does not exist.");
 
-        return ApiResponse<Order>.SuccessResponse(order, "Order retrieved successfully.");
+            return ApiResponse<Order>.SuccessResponse(order, "Order retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<Order>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(GetOrderByIdAsync)}: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<List<Order>>> GetOrderHistoryAsync(DateTime? startDate, DateTime? endDate)
     {
-        // Validate date range
-        if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
-            return ApiResponse<List<Order>>.ErrorResponse("Start date cannot be greater than end date.");
+        try
+        {
+            // Validate date range
+            if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
+                return ApiResponse<List<Order>>.ErrorResponse("Start date cannot be greater than end date.");
 
-        var orders = await _orderRepository.GetOrderHistoryAsync(startDate, endDate);
+            var orders = await _orderRepository.GetOrderHistoryAsync(startDate, endDate);
 
-        if (orders.Count == 0)
-            return ApiResponse<List<Order>>.SuccessResponse(orders,"No orders found for the specified period.");
+            if (orders.Count == 0)
+                return ApiResponse<List<Order>>.SuccessResponse(orders,"No orders found for the specified period.");
 
-        return ApiResponse<List<Order>>.SuccessResponse(orders,$"{orders.Count} order(s) found.");
+            return ApiResponse<List<Order>>.SuccessResponse(orders,$"{orders.Count} order(s) found.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<List<Order>>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(GetOrderHistoryAsync)}: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<Order>> AddOrderItemAsync(int orderId, OrderItemDto dto)
     {
-        // Step 1 — Check order exists and is Pending
-        var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        if (order == null)
-            return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
-
-        if (order.Status != "Pending")
-            return ApiResponse<Order>.ErrorResponse($"Cannot add items to a {order.Status} order.");
-
-        // Step 2 — Validate new item
-        var errors = await _validator.ValidateOrderItemAsync(dto);
-        if (errors.Count > 0)
-            return ApiResponse<Order>.ValidationErrorResponse(errors);
-
-        // Step 3 — Check product exists
-        var product = await _productRepository.GetByIdAsync(dto.ProductId);
-        if (product == null)
-            return ApiResponse<Order>.ErrorResponse($"Product with ID {dto.ProductId} does not exist.");
-
-        // Step 4 — Check if product already in order
-        bool alreadyExists = order.OrderItems.Any(oi => oi.ProductId == dto.ProductId);
-        if (alreadyExists)
-            return ApiResponse<Order>.ErrorResponse($"Product '{product.Name}' is already in this order. Use update quantity instead.");
-
-        // Step 5 — Check sufficient stock
-        if (product.StockQuantity < dto.Quantity)
-            return ApiResponse<Order>.ErrorResponse($"Insufficient stock for '{product.Name}'. Requested: {dto.Quantity}, Available: {product.StockQuantity}.");
-
-        // Step 6 — Create new OrderItem
-        var orderItem = new OrderItem
+        try
         {
-            OrderId = orderId,
-            ProductId = dto.ProductId,
-            Quantity = dto.Quantity,
-            UnitPrice = product.Price,
-            SubTotal = product.Price * dto.Quantity
-        };
+                // Step 1 — Check order exists and is Pending
+                var order = await _orderRepository.GetOrderByIdAsync(orderId);
+                if (order == null)
+                    return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
 
-        // Step 7 — Deduct stock
-        product.StockQuantity -= dto.Quantity;
-        await _productRepository.UpdateAsync(product);
+            if (order.Status != "Pending")
+                return ApiResponse<Order>.ErrorResponse($"Cannot add items to a {order.Status} order.");
 
-        // Step 8 — Add item and recalculate totals
-        await _orderRepository.AddOrderItemAsync(orderItem);
-        order.TotalAmount += orderItem.SubTotal;
-        order.TotalQuantity += dto.Quantity;
-        order.UpdatedOn = DateTime.UtcNow;
-        order.UpdatedBy = "system";
-        await _orderRepository.UpdateOrderAsync(order);
+            // Step 2 — Validate new item
+            var errors = await _orderValidation.ValidateOrderItemAsync(dto);
+            if (errors.Count > 0)
+                return ApiResponse<Order>.ValidationErrorResponse(errors);
 
-        // Step 9 — Return fresh order with all items
-        var updatedOrder = await _orderRepository.GetOrderByIdAsync(orderId);
-        return ApiResponse<Order>.SuccessResponse(updatedOrder!,"Item added to order successfully.");
+            // Step 3 — Check product exists
+            var product = await _productRepository.GetByIdAsync(dto.ProductId);
+            if (product == null)
+                return ApiResponse<Order>.ErrorResponse($"Product with ID {dto.ProductId} does not exist.");
+
+            // Step 4 — Check if product already in order
+            bool alreadyExists = order.OrderItems.Any(oi => oi.ProductId == dto.ProductId);
+            if (alreadyExists)
+                return ApiResponse<Order>.ErrorResponse($"Product '{product.Name}' is already in this order. Use update quantity instead.");
+
+            // Step 5 — Check sufficient stock
+            if (product.StockQuantity < dto.Quantity)
+                return ApiResponse<Order>.ErrorResponse($"Insufficient stock for '{product.Name}'. Requested: {dto.Quantity}, Available: {product.StockQuantity}.");
+
+            // Step 6 — Create new OrderItem
+            var orderItem = new OrderItem
+            {
+                OrderId = orderId,
+                ProductId = dto.ProductId,
+                Quantity = dto.Quantity,
+                UnitPrice = product.Price,
+                SubTotal = product.Price * dto.Quantity
+            };
+
+            // Step 7 — Deduct stock
+            product.StockQuantity -= dto.Quantity;
+            await _productRepository.UpdateAsync(product);
+
+            // Step 8 — Add item and recalculate totals
+            await _orderRepository.AddOrderItemAsync(orderItem);
+            order.TotalAmount += orderItem.SubTotal;
+            order.TotalQuantity += dto.Quantity;
+            order.UpdatedOn = DateTime.UtcNow;
+            order.UpdatedBy = "system";
+            await _orderRepository.UpdateOrderAsync(order);
+
+            // Step 9 — Return fresh order with all items
+            var updatedOrder = await _orderRepository.GetOrderByIdAsync(orderId);
+            return ApiResponse<Order>.SuccessResponse(updatedOrder!,"Item added to order successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<Order>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(AddOrderItemAsync)}: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<Order>> UpdateOrderItemAsync(int orderId, int orderItemId, int newQuantity)
     {
-        // Step 1 — Check order exists and is Pending
-        var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        if (order == null)
-            return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
-
-        if (order.Status != "Pending")
-            return ApiResponse<Order>.ErrorResponse($"Cannot update items in a {order.Status} order.");
-
-        // Step 2 — Validate new quantity
-        if (newQuantity <= 0)
-            return ApiResponse<Order>.ErrorResponse("Quantity must be greater than 0.");
-
-        // Step 3 — Check OrderItem exists
-        var orderItem = await _orderRepository.GetOrderItemByIdAsync(orderItemId);
-        if (orderItem == null)
-            return ApiResponse<Order>.ErrorResponse($"Order item with ID {orderItemId} does not exist.");
-
-        // Step 4 — Check item belongs to this order
-        if (orderItem.OrderId != orderId)
-            return ApiResponse<Order>.ErrorResponse("Order item does not belong to this order.");
-
-        // Step 5 — Calculate stock difference
-        var product = await _productRepository.GetByIdAsync(orderItem.ProductId);
-        int diff = newQuantity - orderItem.Quantity;
-
-        if (diff > 0)
+        try
         {
-            // Needs MORE stock — check available
-            if (product!.StockQuantity < diff)
-                return ApiResponse<Order>.ErrorResponse($"Insufficient stock for '{product.Name}'. Additional needed: {diff}, Available: {product.StockQuantity}.");
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
 
-            // Deduct extra stock
-            product.StockQuantity -= diff;
+            if (order == null)
+                return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
+
+            var errors = await _orderValidation.ValidateUpdateOrderItemAsync(orderId, orderItemId, newQuantity,order);
+
+            if(errors.Count > 0)
+                return ApiResponse<Order>.ValidationErrorResponse(errors);
+        
+
+                // Step 3 — Check OrderItem exists
+                var orderItem = await _orderRepository.GetOrderItemByIdAsync(orderItemId);
+                if (orderItem == null)
+                    return ApiResponse<Order>.ErrorResponse($"Order item with ID {orderItemId} does not exist.");
+
+                // Step 4 — Check item belongs to this order
+                if (orderItem.OrderId != orderId)
+                    return ApiResponse<Order>.ErrorResponse("Order item does not belong to this order.");
+
+                // Step 5 — Calculate stock difference
+                var product = await _productRepository.GetByIdAsync(orderItem.ProductId);
+                int diff = newQuantity - orderItem.Quantity;
+
+                if (diff > 0)
+                {
+                    // Needs MORE stock — check available
+                    if (product!.StockQuantity < diff)
+                        return ApiResponse<Order>.ErrorResponse($"Insufficient stock for '{product.Name}'. Additional needed: {diff}, Available: {product.StockQuantity}.");
+
+                    // Deduct extra stock
+                    product.StockQuantity -= diff;
+                }
+                else if (diff < 0)
+                {
+                    // Returning stock — restore to product
+                    product!.StockQuantity += Math.Abs(diff);
+                }
+
+                await _productRepository.UpdateAsync(product!);
+
+                // Step 6 — Update OrderItem
+                var oldSubTotal = orderItem.SubTotal;
+                orderItem.Quantity = newQuantity;
+                orderItem.SubTotal = orderItem.UnitPrice * newQuantity;
+                await _orderRepository.UpdateOrderItemAsync(orderItem);
+
+                // Step 7 — Recalculate order totals
+                order.TotalAmount = order.TotalAmount - oldSubTotal + orderItem.SubTotal;
+                order.TotalQuantity = order.TotalQuantity - (newQuantity < orderItem.Quantity ? orderItem.Quantity - newQuantity : newQuantity - orderItem.Quantity);
+
+                order.UpdatedOn = DateTime.UtcNow;
+                order.UpdatedBy = "system";
+                await _orderRepository.UpdateOrderAsync(order);
+
+                var updatedOrder = await _orderRepository.GetOrderByIdAsync(orderId);
+                return ApiResponse<Order>.SuccessResponse(updatedOrder!,"Order item updated successfully.");
         }
-        else if (diff < 0)
+        catch (Exception ex)
         {
-            // Returning stock — restore to product
-            product!.StockQuantity += Math.Abs(diff);
+            return ApiResponse<Order>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(UpdateOrderItemAsync)}: {ex.Message}");
         }
-
-        await _productRepository.UpdateAsync(product!);
-
-        // Step 6 — Update OrderItem
-        var oldSubTotal = orderItem.SubTotal;
-        orderItem.Quantity = newQuantity;
-        orderItem.SubTotal = orderItem.UnitPrice * newQuantity;
-        await _orderRepository.UpdateOrderItemAsync(orderItem);
-
-        // Step 7 — Recalculate order totals
-        order.TotalAmount = order.TotalAmount - oldSubTotal + orderItem.SubTotal;
-        order.TotalQuantity = order.TotalQuantity - (newQuantity < orderItem.Quantity ? orderItem.Quantity - newQuantity : newQuantity - orderItem.Quantity);
-
-        order.UpdatedOn = DateTime.UtcNow;
-        order.UpdatedBy = "system";
-        await _orderRepository.UpdateOrderAsync(order);
-
-        var updatedOrder = await _orderRepository.GetOrderByIdAsync(orderId);
-        return ApiResponse<Order>.SuccessResponse(updatedOrder!,"Order item updated successfully.");
     }
 
     public async Task<ApiResponse<Order>> ConfirmOrderAsync(int orderId)
     {
-        if (orderId <= 0)
-            return ApiResponse<Order>.ErrorResponse("Invalid order ID.");
+        try
+        {
+            if (orderId <= 0)
+                return ApiResponse<Order>.ErrorResponse("Invalid order ID.");
 
-        var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        if (order == null)
-            return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
 
-        // Check status
-        if (order.Status == "Confirmed")
-            return ApiResponse<Order>.ErrorResponse("Order is already confirmed.");
+            if (order == null)
+                return ApiResponse<Order>.ErrorResponse($"Order with ID {orderId} does not exist.");
 
-        if (order.Status == "Cancelled")
-            return ApiResponse<Order>.ErrorResponse("Cannot confirm a cancelled order.");
+            var errors = await _orderValidation.ValidateConfirmOrderAsync(order);
 
-        // Confirm order
-        order.Status = "Confirmed";
-        order.UpdatedOn = DateTime.UtcNow;
-        order.UpdatedBy = "system";
-        await _orderRepository.UpdateOrderAsync(order);
+            if (errors.Count > 0)
+                return ApiResponse<Order>.ValidationErrorResponse(errors);
 
-        return ApiResponse<Order>.SuccessResponse(order, "Order confirmed successfully.");
+            // Confirm order
+            order.Status = "Confirmed";
+            order.UpdatedOn = DateTime.UtcNow;
+            order.UpdatedBy = "system";
+            await _orderRepository.UpdateOrderAsync(order);
+
+            return ApiResponse<Order>.SuccessResponse(order, "Order confirmed successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<Order>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(ConfirmOrderAsync)}: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<string>> CancelOrderAsync(int orderId)
     {
-        if (orderId <= 0)
-            return ApiResponse<string>.ErrorResponse("Invalid order ID.");
-
-        var order = await _orderRepository.GetOrderByIdAsync(orderId);
-        if (order == null)
-            return ApiResponse<string>.ErrorResponse($"Order with ID {orderId} does not exist.");
-
-        // Check status
-        if (order.Status == "Cancelled")
-            return ApiResponse<string>.ErrorResponse("Order is already cancelled.");
-
-        if (order.Status == "Confirmed")
-            return ApiResponse<string>.ErrorResponse("Cannot cancel a confirmed order. Please contact administrator.");
-
-        // Restore stock for each order item
-        foreach (var item in order.OrderItems)
+        try
         {
-            var product = await _productRepository.GetByIdAsync(item.ProductId);
-            if (product != null)
+            if (orderId <= 0)
+                return ApiResponse<string>.ErrorResponse("Invalid order ID.");
+
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (order == null)
+                return ApiResponse<string>.ErrorResponse($"Order with ID {orderId} does not exist.");
+
+            // Check status
+            if (order.Status == "Cancelled")
+                return ApiResponse<string>.ErrorResponse("Order is already cancelled.");
+
+            if (order.Status == "Confirmed")
+                return ApiResponse<string>.ErrorResponse("Cannot cancel a confirmed order. Please contact administrator.");
+
+            // Restore stock for each order item
+            foreach (var item in order.OrderItems)
             {
-                product.StockQuantity += item.Quantity;
-                await _productRepository.UpdateAsync(product);
+                var product = await _productRepository.GetByIdAsync(item.ProductId);
+                if (product != null)
+                {
+                    product.StockQuantity += item.Quantity;
+                    await _productRepository.UpdateAsync(product);
+                }
             }
+
+            // Cancel order
+            order.Status = "Cancelled";
+            order.UpdatedOn = DateTime.UtcNow;
+            order.UpdatedBy = "system";
+            await _orderRepository.UpdateOrderAsync(order);
+
+            return ApiResponse<string>.SuccessResponse("Cancelled", $"Order #{orderId} has been cancelled and stock has been restored.");
         }
-
-        // Cancel order
-        order.Status = "Cancelled";
-        order.UpdatedOn = DateTime.UtcNow;
-        order.UpdatedBy = "system";
-        await _orderRepository.UpdateOrderAsync(order);
-
-        return ApiResponse<string>.SuccessResponse("Cancelled", $"Order #{orderId} has been cancelled and stock has been restored.");
+        catch (Exception ex)
+        {
+            return ApiResponse<string>.ErrorResponse($"Unexpected error in {nameof(OrderService)}.{nameof(CancelOrderAsync)}: {ex.Message}");
+        }
     }
 }

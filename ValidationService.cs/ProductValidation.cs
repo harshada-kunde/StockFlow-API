@@ -94,7 +94,7 @@ public class ProductValidation : IProductValidation
         }
         return errors;
     }
-    public async Task<List<string>> ValidateUpdateAsync(int id, ProductDto dto)
+    public async Task<List<string>> ValidateUpdateAsync(int id, ProductUpdateDto dto)
     {
         var errors = new List<string>();
 
@@ -104,24 +104,6 @@ public class ProductValidation : IProductValidation
             errors.Add("Invalid product ID.");
             return errors;
         }
-
-        // ── Name validation ───────
-        if (string.IsNullOrWhiteSpace(dto.Name))
-        {
-            errors.Add("Product name is required.");
-            return errors;
-        }
-
-        dto.Name = dto.Name.Trim();
-
-        if (dto.Name.Length < 2)
-            errors.Add("Name must be at least 2 characters.");
-
-        if (dto.Name.Length > 150)
-            errors.Add("Name cannot exceed 150 characters.");
-
-        if (!System.Text.RegularExpressions.Regex.IsMatch(dto.Name, @"^[a-zA-Z0-9\s\-_]+$"))
-            errors.Add("Name can only contain letters, numbers, spaces, hyphens and underscores.");
 
         // ── Brand validation ──────────────────
         if (string.IsNullOrWhiteSpace(dto.Brand))
@@ -155,15 +137,6 @@ public class ProductValidation : IProductValidation
         // ── Stock validation ────────────────
         if (dto.StockQuantity < 0)
             errors.Add("Stock quantity cannot be negative.");
-
-        // ── Duplicate check excluding current record ─────
-        if (errors.Count == 0)
-        {
-            bool exists = await _productRepository.ProductExistsAsync(
-                          dto.Name, dto.CategoryId, excludeId: id);
-            if (exists)
-                errors.Add($"Another product named '{dto.Name}' already exists in this category.");
-        }
 
         return errors;
     }
