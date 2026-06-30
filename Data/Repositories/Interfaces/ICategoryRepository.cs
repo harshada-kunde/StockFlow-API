@@ -18,4 +18,4 @@ public interface ICategoryRepository
         Task<bool> NameExistsAsync(string name, int? excludeId = null);
         Task<bool> HasProductsAsync(int categoryId);
 
-}
+    }

@@ -34,7 +34,7 @@ public interface IProductService
         List<ProductDto> dtos);
 
     // Update
-    Task<ApiResponse<Product>> UpdateProductAsync(int id, ProductDto dto);
+    Task<ApiResponse<Product>> UpdateProductAsync(int id, ProductUpdateDto dto);
 
     // Delete
     Task<ApiResponse<string>> DeleteProductAsync(int id);

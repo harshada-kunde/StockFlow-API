@@ -119,7 +119,7 @@ public class ProductController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Update(int id, [FromBody] ProductDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] ProductUpdateDto dto)
     {
         var response = await _productService.UpdateProductAsync(id, dto);
         if (!response.Success)
