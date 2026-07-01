@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
-options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add services to the container.
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration
+       .GetConnectionString("DefaultConnection")));
 
 // Controllers with JSON options
 builder.Services.AddControllers()
