@@ -27,3 +27,4 @@ packages/
 .idea/
 *.suo
 *.userprefs
+.vs/
