@@ -66,7 +66,7 @@ public class ProductRepository : IProductRepository
                              .Include(p => p.Category)
                              .Where(p => p.Price >= minPrice && 
                                     p.Price <= maxPrice)
-                             .OrderBy(p => (double)p.Price)
+                             .OrderBy(p =>p.Price)
                              .Skip((pageNo - 1) * pageSize)
                              .Take(pageSize)
                              .ToListAsync();
