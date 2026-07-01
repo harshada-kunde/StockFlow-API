@@ -15,6 +15,11 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    /// <summary>
+    /// User registration. 
+    /// </summary>
+    /// <param name="dto">The Registration details.</param>
+    /// <returns>Confirmation message.</returns>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
@@ -25,6 +30,11 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// User login.
+    /// </summary>
+    /// <param name="dto">The Login details.</param>
+    /// <returns>Login token</returns>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
@@ -34,6 +44,10 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
+    /// <summary>
+    /// Retrieves the user profile information.
+    /// </summary>
+    /// <returns>User profile details.</returns>
     [HttpGet("profile")]
     public async Task<IActionResult> GetUserNames()
     {

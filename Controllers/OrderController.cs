@@ -16,6 +16,11 @@ public class OrderController : ControllerBase
         _orderService = orderService;
     }
 
+    /// <summary>
+    /// Creates a new order. Requires Admin role.
+    /// </summary>
+    /// <param name="dto">The order details.</param>
+    /// <returns>Order details.</returns>
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateOrder([FromBody] OrderDto dto)
@@ -33,6 +38,11 @@ public class OrderController : ControllerBase
                new { orderId = response.Data!.Id }, response);
     }
 
+    /// <summary>
+    /// Retrieves an order by its ID. Requires Admin role.
+    /// </summary>
+    /// <param name="orderId">The order ID.</param>
+    /// <returns>Order details.</returns>
     [HttpGet("{orderId}")]
     [Authorize]
     public async Task<IActionResult> GetOrderById(int orderId)
@@ -49,7 +59,12 @@ public class OrderController : ControllerBase
 
         return Ok(response);
     }
-
+    /// <summary>
+    /// Retrieves the order history.
+    /// </summary>
+    /// <param name="startDate">The start date for the order history.</param>
+    /// <param name="endDate">The end date for the order history.</param>
+    /// <returns>Order details.</returns>
     [HttpGet("history")]
     [Authorize]
     public async Task<IActionResult> GetOrderHistory([FromQuery] DateOnly? startDate,[FromQuery] DateOnly? endDate)
@@ -64,6 +79,11 @@ public class OrderController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Adds an item to an existing order. Requires Admin role.
+    /// </summary>
+    /// <param name="dto">The order item details.</param>
+    /// <returns>Order details.</returns>
     [HttpPut("{orderId}/additem")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AddOrderItem( int orderId, [FromBody] OrderItemDto dto)
@@ -84,6 +104,13 @@ public class OrderController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Updates an item in an existing order. Requires Admin role.
+    /// </summary>
+    /// <param name="orderId">The order ID.</param>
+    /// <param name="newQuantity">The new quantity for the order item.</param>
+    /// <param name="orderItemId">The order item ID.</param>
+    /// <returns>Order details.</returns>
     [HttpPut("{orderId}/updateitem/{orderItemId}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateOrderItem(int orderId,int orderItemId,[FromQuery] int newQuantity)
@@ -102,6 +129,11 @@ public class OrderController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Confirms an existing order. Requires Admin role.
+    /// </summary>
+    /// <param name="orderId">The order ID.</param>
+    /// <returns>Confirmation details.</returns>
     [HttpPut("{orderId}/confirm")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ConfirmOrder(int orderId)
@@ -119,6 +151,11 @@ public class OrderController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Cancels an existing order. Requires Admin role.
+    /// </summary>
+    /// <param name="orderId">The order ID .</param>
+    /// <returns>Cancellation details.</returns>
     [HttpPut("{orderId}/cancel")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CancelOrder(int orderId)

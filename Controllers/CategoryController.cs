@@ -16,6 +16,10 @@ public class CategoryController : ControllerBase
         _categoryService = categoryService;
     }
 
+    /// <summary>
+    /// Retrieves all categories.
+    /// </summary>
+    /// <returns>List of all categories.</returns>
     [HttpGet]
     [Authorize]
     public async Task<IActionResult> GetAll()
@@ -24,6 +28,11 @@ public class CategoryController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Retrieves a single category by Category ID.
+    /// </summary>
+    /// <param name="id">The category ID.</param>
+    /// <returns>The matching category if found.</returns>
     [HttpGet("{id}")]
     [Authorize]
     public async Task<IActionResult> GetById(int id)
@@ -35,6 +44,11 @@ public class CategoryController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Creates a new category. Requires Admin role.
+    /// </summary>
+    /// <param name="dto">Category details including name.</param>
+    /// <returns>The newly created category.</returns>
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CategoryDto dto)
@@ -50,6 +64,12 @@ public class CategoryController : ControllerBase
                new { id = response.Data!.Id }, response);
     }
 
+    /// <summary>
+    /// Updates an existing category. Requires Admin role.
+    /// </summary>
+    /// <param name="id">The category ID to update.</param>
+    /// <param name="dto">Updated category details.</param>
+    /// <returns>The updated category.</returns>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] CategoryDto dto)
@@ -64,6 +84,12 @@ public class CategoryController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Deletes a category. Requires Admin role. 
+    /// Cannot delete categories that have associated products.
+    /// </summary>
+    /// <param name="id">The category ID to delete.</param>
+    /// <returns>Confirmation message.</returns>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
