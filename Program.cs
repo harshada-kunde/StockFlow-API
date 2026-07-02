@@ -1,14 +1,30 @@
-using StockFlow.API.Data;
-using StockFlow.API.Middleware;
-using StockFlow.API.Extensions;
+using Humanizer.Configuration;
 using Microsoft.EntityFrameworkCore;
+using StockFlow.API.Data;
+using StockFlow.API.Extensions;
+using StockFlow.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// Updated with retry logic
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is missing. " +
+        "Set it via 'dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" \"<value>\"' for local development, " +
+        "or via the ConnectionStrings__DefaultConnection environment variable in other environments.");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration
-       .GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        connectionString,
+        sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null);
+        }));
 
 // Controllers with JSON options
 builder.Services.AddControllers()
@@ -43,4 +59,22 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Auto-run migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider
+                  .GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        // This creates StockFlowDB if it doesn't exist
+        // Then runs all migrations
+        db.Database.Migrate();
+        Console.WriteLine("✅ Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Migration failed: {ex.Message}");
+        throw;
+    }
+}
 app.Run();
