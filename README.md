@@ -15,7 +15,7 @@ StockFlow is a Inventory Management REST API built with ASP.NET Core 8. It handl
 
 # 🚀 How to Use
 
-**Option 1 — Docker**
+**Option 1 — Use Docker**
 
 git clone https://github.com/harshada-kunde/StockFlow-API.git
 
