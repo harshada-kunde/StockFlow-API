@@ -1,6 +1,6 @@
 # 📦 What is StockFlow?
 
-StockFlow is a Inventory Management REST API built with ASP.NET Core 8. It handles the full lifecycle of inventory operations — managing categories, products, and orders — with secure role-based access for Admin and Employee users.
+StockFlow is a Inventory Management REST API built with ASP.NET Core 8. It handles the full lifecycle of inventory operations — managing categories, products, and orders — with secure role-based access for Admin and Employee users. Integrated Groq LLM API for natural language inventory queries — converts plain English to structured EF Core filters via JSON output parsing with failure handling.
 
 # Key capabilities:
 
@@ -49,6 +49,17 @@ Getting Started in Swagger
 3. Click 🔒 Authorize       →  paste token
 4. Start calling endpoints
 
+### 🚀 AI-Powered Query 
+**Method** - POST
+
+**EndPoint** -/api/inventory/query
+
+**Access** - Any user
+
+**Description** -  Natural language inventory search
+
+**Example:**
+{ "query": "show electronics under €500 with low stock" }
 
 # 🧱 Technologies          
 
