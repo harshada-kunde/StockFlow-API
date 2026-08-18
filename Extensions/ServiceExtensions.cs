@@ -11,6 +11,7 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpClient();
         // Repositories
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
@@ -21,6 +22,7 @@ public static class ServiceExtensions
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IInventoryQueryService, InventoryQueryService>();
 
         // Validators
         services.AddScoped<ICategoryValidation, CategoryValidation>();

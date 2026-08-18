@@ -20,13 +20,13 @@ public class ProductRepository : IProductRepository
    {
     var query = _context.Products.Include(p => p.Category).OrderBy(p => p.Name);      //Does NOT hit database — just builds the query in memory
 
-    var countTask = query.CountAsync();     //THIS hits the database — CountAsync() executes the query
+    var countTask = await query.CountAsync();     //THIS hits the database — CountAsync() executes the query
            
-    var productsTask = query.Skip((pageNo - 1) * pageSize).Take(pageSize).ToListAsync();               //THIS hits the database — ToListAsync() executes the query
+    var productsTask = await query.Skip((pageNo - 1) * pageSize).Take(pageSize).ToListAsync();               //THIS hits the database — ToListAsync() executes the query
 
-    await Task.WhenAll(countTask, productsTask);  //Task.WhenAll runs both database calls simultaneously instead of sequentially: instead of hitting DB twice, it hits it once for both calls.
+    //await Task.WhenAll(countTask, productsTask);  //Task.WhenAll runs both database calls simultaneously instead of sequentially: instead of hitting DB twice, it hits it once for both calls.
 
-    return (await productsTask, await countTask);
+    return ( productsTask,  countTask);
 }
 
     public async Task<Product?> GetByIdAsync(int id)
